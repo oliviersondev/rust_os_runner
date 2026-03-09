@@ -1,4 +1,5 @@
 use std::env;
+use dotenvy::dotenv;
 use std::fs::{create_dir_all, remove_file};
 use std::io::{self, ErrorKind};
 use std::os::unix::fs::symlink;
@@ -6,12 +7,14 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 fn main() {
+    dotenv().ok();
+
     // This is the folder where a build script (this file) should place its output
-    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("The OUT_DIR environment variable must be set"));
     // This is the `runner` folder
-    let runner_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let runner_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("The CARGO_MANIFEST_DIR environment variable must be set"));
     // This folder contains Limine files such as `BOOTX64.EFI`
-    let limine_dir = PathBuf::from(env::var("LIMINE_PATH").unwrap());
+    let limine_dir = PathBuf::from(env::var("LIMINE_PATH").expect("LIMINE_PATH environment variable must be set"));
 
     // We will create an ISO file for our OS
     // First we create a folder which will be used to generate the ISO
