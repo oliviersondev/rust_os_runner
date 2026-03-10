@@ -24,7 +24,7 @@ fn main() {
 
     // Limine config will be in `limine.conf`
     let limine_conf = iso_dir.join("limine.conf");
-    ensure_symlink(runner_dir.join("limine.conf"), limine_conf).unwrap();
+    ensure_symlink(runner_dir.join("../kernel/limine.conf"), limine_conf).unwrap();
 
     let boot_dir = iso_dir.join("boot");
     create_dir_all(&boot_dir).unwrap();
