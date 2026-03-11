@@ -1,10 +1,10 @@
-use std::env;
+use std::{env, process};
 use dotenvy::dotenv;
 use std::fs::{create_dir_all, remove_file};
 use std::io::{self, ErrorKind};
 use std::os::unix::fs::symlink;
-use std::path::{Path, PathBuf};
-use std::process::Stdio;
+use std::path::{Display, Path, PathBuf};
+use std::process::{Command, Stdio};
 
 fn main() {
     dotenv().ok();
@@ -100,6 +100,8 @@ fn main() {
 
     let output_iso = output_iso.display();
     println!("cargo:rustc-env=ISO={output_iso}");
+
+    run_qemu(output_iso).expect("TODO: panic message");
 }
 
 pub fn ensure_symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
@@ -112,4 +114,24 @@ pub fn ensure_symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> i
     }?;
     symlink(original, link)?;
     Ok(())
+}
+
+fn run_qemu(output_iso: Display) -> io::Result<()> {
+    let ovmf = env::var("OVMF_PATH").unwrap();
+
+    // Qemu runs our OS in a virtual
+    let mut qemu = Command::new("qemu-system-x86_64");
+
+    // Specify the path to the ISO
+    qemu.arg("-cdrom");
+    qemu.arg(output_iso.to_string());
+    // For UEFI on qemu, the path to OVMF.fd is needed
+    qemu.arg("-bios").arg(ovmf);
+
+    // Pass any args to qemu
+    env::args().skip(1).for_each(|arg| {
+        qemu.arg(arg);
+    });
+    let exit_status = qemu.status().unwrap();
+    process::exit(exit_status.code().unwrap_or(1));
 }
