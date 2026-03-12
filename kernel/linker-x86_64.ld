@@ -1,0 +1,1 @@
+ENTRY(entry_point_from_limine)

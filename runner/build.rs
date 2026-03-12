@@ -1,10 +1,10 @@
-use std::{env, process};
+use std::{env};
 use dotenvy::dotenv;
 use std::fs::{create_dir_all, remove_file};
 use std::io::{self, ErrorKind};
 use std::os::unix::fs::symlink;
-use std::path::{Display, Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::path::{Path, PathBuf};
+use std::process::{Stdio};
 
 fn main() {
     dotenv().ok();
@@ -22,9 +22,15 @@ fn main() {
     let iso_dir = out_dir.join("iso_root");
     create_dir_all(&iso_dir).unwrap();
 
+    // Cargo passes us the path the to kernel executable because it is an artifact dep
+    let kernel_executable_file = env::var("CARGO_BIN_FILE_KERNEL").unwrap();
+    // Symlink the kernel binary to `kernel`
+    let kernel_dest = iso_dir.join("kernel");
+    ensure_symlink(&kernel_executable_file, &kernel_dest).unwrap();
+
     // Limine config will be in `limine.conf`
     let limine_conf = iso_dir.join("limine.conf");
-    ensure_symlink(runner_dir.join("../kernel/limine.conf"), limine_conf).unwrap();
+    ensure_symlink(runner_dir.join("limine.conf"), limine_conf).unwrap();
 
     let boot_dir = iso_dir.join("boot");
     create_dir_all(&boot_dir).unwrap();
@@ -100,8 +106,6 @@ fn main() {
 
     let output_iso = output_iso.display();
     println!("cargo:rustc-env=ISO={output_iso}");
-
-    run_qemu(output_iso).expect("TODO: panic message");
 }
 
 pub fn ensure_symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
@@ -114,24 +118,4 @@ pub fn ensure_symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> i
     }?;
     symlink(original, link)?;
     Ok(())
-}
-
-fn run_qemu(output_iso: Display) -> io::Result<()> {
-    let ovmf = env::var("OVMF_PATH").unwrap();
-
-    // Qemu runs our OS in a virtual
-    let mut qemu = Command::new("qemu-system-x86_64");
-
-    // Specify the path to the ISO
-    qemu.arg("-cdrom");
-    qemu.arg(output_iso.to_string());
-    // For UEFI on qemu, the path to OVMF.fd is needed
-    qemu.arg("-bios").arg(ovmf);
-
-    // Pass any args to qemu
-    env::args().skip(1).for_each(|arg| {
-        qemu.arg(arg);
-    });
-    let exit_status = qemu.status().unwrap();
-    process::exit(exit_status.code().unwrap_or(1));
 }
