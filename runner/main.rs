@@ -4,7 +4,9 @@ use dotenvy::dotenv;
 
 fn main() {
     let iso = env::var("ISO").unwrap();
+    let kernel_path = env::var("KERNEL_PATH").unwrap();
     println!("ISO path: {iso:?}");
+    println!("KERNEL_PATH={kernel_path:?}");
 
     run_qemu(iso).expect("TODO: panic message");
 }

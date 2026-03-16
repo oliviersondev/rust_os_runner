@@ -4,5 +4,6 @@ build-kernel:
 run-qemu:
 	cargo run
 
-run-debug_qemu:
+run-debug-qemu:
 	cargo r -- -s -S
+	gdb $(KERNEL_PATH)

@@ -105,7 +105,9 @@ fn main() {
     assert!(status.success());
 
     let output_iso = output_iso.display();
+    let kernel_dest = kernel_dest.display();
     println!("cargo:rustc-env=ISO={output_iso}");
+    println!("cargo:rustc-env=KERNEL_PATH={kernel_dest}");
 }
 
 pub fn ensure_symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
