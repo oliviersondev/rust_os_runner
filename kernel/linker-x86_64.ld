@@ -1,8 +1,8 @@
 /* We want an x86-64 elf binary */
 OUTPUT_FORMAT(elf64-x86-64)
 
-/* set the function kmain() to be the entry point*/
-ENTRY(kmain)
+/* set the function kernel main() to be the entry point*/
+ENTRY(entry_point_from_limine)
 
 /* Add some program headers to make stuff be loaded properly */
 PHDRS

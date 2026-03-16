@@ -12,3 +12,4 @@ bench = false
 [dependencies]
 limine = "0.5"
 x86_64 = "0.15.2"
+uart_16550 = "0.3.2"
