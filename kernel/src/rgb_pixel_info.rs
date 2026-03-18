@@ -12,7 +12,7 @@ pub struct RgbPixelInfo {
 
 impl RgbPixelInfo {
     pub fn build_pixel(&self, color: &Rgb888) -> u32 {
-        /// Technically, Limine and this struct could have a pixel size other than u32, in which case you shouldn't use this method
+        // Technically, Limine and this struct could have a pixel size other than u32, in which case you shouldn't use this method
         let mut n = 0;
         n |= ((color.r() as u32) & ((1 << self.red_mask_size) - 1)) << self.red_mask_shift;
         n |= ((color.g() as u32) & ((1 << self.green_mask_size) - 1)) << self.green_mask_shift;
