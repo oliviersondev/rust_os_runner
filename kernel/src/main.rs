@@ -36,20 +36,24 @@ unsafe extern "C" fn entry_point_from_limine() -> ! {
     writeln!(serial_port, "Hello World!\r").unwrap();
 
     let frame_buffer = FRAME_BUFFER_REQUEST.get_response().unwrap();
-    if let Some(frame_buffer) = frame_buffer.framebuffers().next() {
-        let mut frame_buffer = {
-            let addr = frame_buffer.addr().addr().try_into().unwrap();
-            let info = (&frame_buffer).into();
-            unsafe { FrameBufferEmbeddedGraphics::new(addr, info) }
-        };
-        
-        frame_buffer.clear(Rgb888::MAGENTA).unwrap();
-    }
+    // if let Some(frame_buffer) = frame_buffer.framebuffers().next() {
+    //     let mut frame_buffer = {
+    //         let addr = frame_buffer.addr().addr().try_into().unwrap();
+    //         let info = (&frame_buffer).into();
+    //         unsafe { FrameBufferEmbeddedGraphics::new(addr, info) }
+    //     };
+    //
+    //     frame_buffer.clear(Rgb888::MAGENTA).unwrap();
+    // }
+
+    kernel::init_logger(frame_buffer).unwrap();
+    log::info!("Hello World!");
 
     hlt_loop();
 }
 // TODO option de build pour pouvoir booter avec bootloader minimalist https://github.com/rust-osdev/bootloader
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    log::error!("{info}!");
     hlt_loop();
 }
