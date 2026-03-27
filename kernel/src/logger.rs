@@ -1,4 +1,4 @@
-use crate::{FrameBufferEmbeddedGraphics, WriterWithCr};
+use crate::{FrameBufferEmbeddedGraphics};
 use core::fmt::{Display, Write};
 use embedded_graphics::Drawable;
 use embedded_graphics::draw_target::DrawTarget;
@@ -14,6 +14,7 @@ use log::{Level, LevelFilter, Log, Record};
 use owo_colors::OwoColorize;
 use uart_16550::SerialPort;
 use unicode_segmentation::UnicodeSegmentation;
+use crate::writer_with_cr::WriterWithCr;
 
 struct Inner {
     serial_port: SerialPort,

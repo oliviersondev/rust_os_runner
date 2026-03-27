@@ -11,7 +11,6 @@ pub use rgb_pixel_info::RgbPixelInfo;
 pub use frame_buffer_info::FrameBufferInfo;
 pub use limine_requests::FRAME_BUFFER_REQUEST;
 pub use frame_buffer_embedded_graphics::FrameBufferEmbeddedGraphics;
-pub use writer_with_cr::WriterWithCr;
 pub use logger::init as init_logger;
 
 pub fn hlt_loop() -> ! {
