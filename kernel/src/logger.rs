@@ -103,11 +103,19 @@ impl Inner {
 }
 
 impl Log for KernelLogger {
-    fn enabled(&self, _: &log::Metadata) -> bool {
-        todo!()
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        let max = log::max_level();
+        max != LevelFilter::Off && metadata.level() <= max
+    }
+    fn flush(&self) {
+        // No-op: sorties série/framebuffer non bufferisées ici
     }
 
     fn log(&self, record: &Record) {
+        if !self.enabled(record.metadata()) {
+            return;
+        }
+
         let mut inner = self.inner.try_lock().unwrap();
         let level = record.level();
         inner.write_with_color(
@@ -122,10 +130,6 @@ impl Log for KernelLogger {
         );
         inner.write_with_color(Color::Default, record.args());
         inner.write_with_color(Color::Default, "\r\n");
-    }
-
-    fn flush(&self) {
-        todo!()
     }
 }
 
