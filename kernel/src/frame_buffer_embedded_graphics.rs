@@ -42,6 +42,11 @@ impl FrameBufferEmbeddedGraphics<'_> {
             panic!("DrawTarget implemented for RGB888, but bpp doesn't match RGB888");
         }
     }
+
+    pub fn shift_up(&mut self, amount: usize) {
+        // Moves everything on the screen up, leaving the bottom the same as it was before
+        self.buffer.copy_within(amount * self.pixel_pitch.., 0)
+    }
 }
 
 impl Dimensions for FrameBufferEmbeddedGraphics<'_> {
