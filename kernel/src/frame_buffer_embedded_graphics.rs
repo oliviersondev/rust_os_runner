@@ -44,7 +44,7 @@ impl FrameBufferEmbeddedGraphics<'_> {
     }
 
     pub fn shift_up(&mut self, amount: usize) {
-        /// Moves everything on the screen up, leaving the bottom the same as it was before
+        // Moves everything on the screen up, leaving the bottom the same as it was before
         self.buffer.copy_within(amount * self.pixel_pitch.., 0)
     }
 }
