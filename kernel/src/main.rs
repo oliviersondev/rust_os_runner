@@ -46,14 +46,25 @@ unsafe extern "C" fn entry_point_from_limine() -> ! {
         frame_buffer.clear(Rgb888::MAGENTA).unwrap();
     }
 
-    kernel::init_logger(frame_buffer).unwrap();
-    log::info!("Hello World!");
+    if let Err(_err) = kernel::init_logger(frame_buffer) {
+        let _ = writeln!(serial_port, "Failed to initialize logger!");
+    } else {
+        log::info!("Hello World!");
+    }
 
     hlt_loop();
 }
 // TODO option de build pour pouvoir booter avec bootloader minimalist https://github.com/rust-osdev/bootloader
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    log::error!("{info}!");
+    // Fallback toujours disponible, même si le logger n'est pas initialisé
+    // ou si son mutex est momentanément occupé.
+    unsafe {
+        let mut serial_port = SerialPort::new(0x3F8);
+        serial_port.init();
+        let _ = writeln!(serial_port, "panic: {info}\r");
+    }
+    // Optionnel: si le logger est prêt, ça ira aussi sur l'écran.
+    log::error!("panic: {info}");
     hlt_loop();
 }

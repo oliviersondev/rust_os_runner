@@ -51,27 +51,34 @@ static LOGGER: KernelLogger = KernelLogger {
     }),
 };
 
-pub fn init(frame_buffer: &'static FramebufferResponse) -> Result<(), log::SetLoggerError> {
+fn serial_fallback_write(args: core::fmt::Arguments<'_>) {
     unsafe {
-        let mut innner = LOGGER.inner.try_lock().unwrap();
-        innner.serial_port.init();
-        innner.display = frame_buffer
-            .framebuffers()
-            .next()
-            .map(|frame_buffer| DisplayData {
-                display: FrameBufferEmbeddedGraphics::new(
-                    frame_buffer.addr().addr().try_into().unwrap(),
-                    (&frame_buffer).into(),
-                ),
-                position: Point::zero(),
-            });
-        log::set_max_level(LevelFilter::Info);
-        log::set_logger(&LOGGER)
+        let mut port = SerialPort::new(0x3F8);
+        port.init();
+        let mut writer = WriterWithCr::new(&mut port);
+        let _ = writer.write_fmt(args);
     }
+}
+
+pub fn init(frame_buffer: &'static FramebufferResponse) -> Result<(), log::SetLoggerError> {
+    let mut inner = LOGGER.inner.lock();
+    inner.serial_port.init();
+    inner.display = frame_buffer.framebuffers().next().and_then(|fb| {
+        let addr = fb.addr().addr().try_into().ok()?;
+        let info = (&fb).into();
+        Some(DisplayData {
+            // keep unsafe scope minimal
+            display: unsafe { FrameBufferEmbeddedGraphics::new(addr, info) },
+            position: Point::zero(),
+        })
+    });
+    
+    log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Info))
 }
 
 impl Inner {
     fn write_with_color(&mut self, color: Color, string: impl Display) {
+        // Framebuffer path (optional)
         if let Some(display_data) = &mut self.display {
             let mut writer = Writer {
                 display: &mut display_data.display,
@@ -86,10 +93,10 @@ impl Inner {
                     Color::BrightMagenta => Rgb888::new(255, 85, 255),
                 },
             };
-            write!(writer, "{}", string).unwrap();
+            let _ = write!(writer, "{}", string);
         }
-
-        let string: &dyn Display = match color {
+        // Serial path (always on)
+        let serial_string: &dyn Display = match color {
             Color::Default => &string,
             Color::BrightRed => &string.bright_red(),
             Color::BrightYellow => &string.bright_yellow(),
@@ -98,7 +105,7 @@ impl Inner {
             Color::BrightMagenta => &string.bright_magenta(),
         };
         let mut writer = WriterWithCr::new(&mut self.serial_port);
-        write!(writer, "{string}").unwrap();
+        let _ = write!(writer, "{serial_string}");
     }
 }
 
@@ -107,29 +114,35 @@ impl Log for KernelLogger {
         let max = log::max_level();
         max != LevelFilter::Off && metadata.level() <= max
     }
-    fn flush(&self) {
-        // No-op: sorties série/framebuffer non bufferisées ici
-    }
 
     fn log(&self, record: &Record) {
         if !self.enabled(record.metadata()) {
             return;
         }
 
-        let mut inner = self.inner.try_lock().unwrap();
-        let level = record.level();
-        inner.write_with_color(
-            match level {
-                Level::Error => Color::BrightRed,
-                Level::Warn => Color::BrightYellow,
-                Level::Info => Color::BrightBlue,
-                Level::Debug => Color::BrightCyan,
-                Level::Trace => Color::BrightMagenta,
-            },
-            format_args!("{level:5} "),
-        );
-        inner.write_with_color(Color::Default, record.args());
-        inner.write_with_color(Color::Default, "\r\n");
+        if let Some(mut inner) = self.inner.try_lock() {
+            let level = record.level();
+            inner.write_with_color(
+                match level {
+                    Level::Error => Color::BrightRed,
+                    Level::Warn => Color::BrightYellow,
+                    Level::Info => Color::BrightBlue,
+                    Level::Debug => Color::BrightCyan,
+                    Level::Trace => Color::BrightMagenta,
+                },
+                format_args!("{level:5} "),
+            );
+            inner.write_with_color(Color::Default, record.args());
+            inner.write_with_color(Color::Default, "\r\n");
+        } else {
+            // Fallback if lock is busy: serial only, best effort
+            serial_fallback_write(format_args!("{:5} {}\n", record.level(), record.args()));
+        }
+
+    }
+
+    fn flush(&self) {
+        // No-op: sorties série/framebuffer non bufferisées ici
     }
 }
 
